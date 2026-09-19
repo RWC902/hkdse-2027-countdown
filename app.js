@@ -4,6 +4,8 @@
 (function () {
   const EXAM_HOUR = 8;
   const EXAM_MINUTE = 30;
+  const STORAGE_KEY = "hkdse2027-focus-id";
+  const VERSE_KEY = "hkdse2027-verse-i";
 
   const TONES = [
     "tone-red", "tone-orange", "tone-amber", "tone-lime", "tone-green",
@@ -11,14 +13,77 @@
     "tone-purple", "tone-fuchsia", "tone-pink", "tone-rose",
   ];
 
-  /** @type {{id:string, zh:string, en:string, date:string, hero?:boolean, tipZh:string, tipEn:string}[]} */
+  const VERSES = [
+    {
+      zh: "我靠着那加给我力量的，凡事都能做。",
+      en: "I can do all this through him who gives me strength.",
+      ref: "腓立比書 4:13 · Philippians 4:13",
+    },
+    {
+      zh: "你不要害怕，因为我与你同在；不要惊惶，因为我是你的神。我必坚固你，我必帮助你。",
+      en: "So do not fear, for I am with you; do not be dismayed, for I am your God. I will strengthen you and help you.",
+      ref: "以賽亞書 41:10 · Isaiah 41:10",
+    },
+    {
+      zh: "你当刚强壮胆！不要惧怕，也不要惊惶；因为你无论往哪里去，耶和华你的神必与你同在。",
+      en: "Be strong and courageous. Do not be afraid; do not be discouraged, for the Lord your God will be with you wherever you go.",
+      ref: "約書亞記 1:9 · Joshua 1:9",
+    },
+    {
+      zh: "神是我们的避难所，是我们的力量，是我们在患难中随时的帮助。",
+      en: "God is our refuge and strength, an ever-present help in trouble.",
+      ref: "詩篇 46:1 · Psalm 46:1",
+    },
+    {
+      zh: "你要专心仰赖耶和华，不可倚靠自己的聪明，在你一切所行的事上都要认定他，他必指引你的路。",
+      en: "Trust in the Lord with all your heart and lean not on your own understanding; in all your ways submit to him, and he will make your paths straight.",
+      ref: "箴言 3:5–6 · Proverbs 3:5–6",
+    },
+    {
+      zh: "耶稣看着他们，说：在人这是不能的，在神凡事都能。",
+      en: "Jesus looked at them and said, “With man this is impossible, but with God all things are possible.”",
+      ref: "馬太福音 19:26 · Matthew 19:26",
+    },
+    {
+      zh: "因为神赐给我们，不是胆怯的心，乃是刚强、仁爱、谨守的心。",
+      en: "For the Spirit God gave us does not make us timid, but gives us power, love and self-discipline.",
+      ref: "提摩太後書 1:7 · 2 Timothy 1:7",
+    },
+    {
+      zh: "你的话是我脚前的灯，是我路上的光。",
+      en: "Your word is a lamp for my feet, a light on my path.",
+      ref: "詩篇 119:105 · Psalm 119:105",
+    },
+    {
+      zh: "耶和华说：我知道我向你们所怀的意念是赐平安的意念，不是降灾祸的意念，要叫你们末后有指望。",
+      en: "“For I know the plans I have for you,” declares the Lord, “plans to prosper you and not to harm you, plans to give you hope and a future.”",
+      ref: "耶利米書 29:11 · Jeremiah 29:11",
+    },
+    {
+      zh: "我们晓得万事都互相效力，叫爱神的人得益处。",
+      en: "And we know that in all things God works for the good of those who love him.",
+      ref: "羅馬書 8:28 · Romans 8:28",
+    },
+    {
+      zh: "凡劳苦担重担的人可以到我这里来，我就使你们得安息。",
+      en: "Come to me, all you who are weary and burdened, and I will give you rest.",
+      ref: "馬太福音 11:28 · Matthew 11:28",
+    },
+    {
+      zh: "应当一无挂虑，只要凡事借着祷告、祈求，和感谢，将你们所要的告诉神。",
+      en: "Do not be anxious about anything, but in every situation, by prayer and petition, with thanksgiving, present your requests to God.",
+      ref: "腓立比書 4:6 · Philippians 4:6",
+    },
+  ];
+
+  /** @type {{id:string, zh:string, en:string, date:string, defaultHero?:boolean, tipZh:string, tipEn:string}[]} */
   const SUBJECTS = [
     {
       id: "chi",
       zh: "中國語文（一）及（二）",
       en: "Chinese Language Papers 1 & 2",
       date: "2027-04-08",
-      hero: true,
+      defaultHero: true,
       tipZh: "讀多一篇、寫多一段。語感係練出嚟嘅——你做得到。",
       tipEn: "One more passage, one more paragraph. Language sense grows with practice — you’ve got this.",
     },
@@ -43,6 +108,9 @@
     { id: "ths", zh: "旅遊與款待", en: "Tourism & Hospitality Studies", date: "2027-04-28", tipZh: "設身處地諗旅客同營運，答案更貼地。", tipEn: "Think like both guest and operator — answers feel real." },
     { id: "ers", zh: "倫理與宗教", en: "Ethics & Religious Studies", date: "2027-04-30", tipZh: "立場要清晰，尊重唔同觀點。", tipEn: "Be clear in your stance, and respectful of other views." },
   ];
+
+  const byDate = SUBJECTS.slice().sort((a, b) => a.date.localeCompare(b.date));
+  const toneById = Object.fromEntries(byDate.map((s, i) => [s.id, TONES[i % TONES.length]]));
 
   function targetMs(isoDate) {
     return new Date(
@@ -79,28 +147,62 @@
 
   const heroEl = document.getElementById("hero");
   const listEl = document.getElementById("subject-list");
+  const verseTextEl = document.getElementById("verse-text");
+  const verseRefEl = document.getElementById("verse-ref");
+  const verseNextBtn = document.getElementById("verse-next");
+  const verseListEl = document.getElementById("verse-list");
 
-  const hero = SUBJECTS.find((s) => s.hero);
-  const others = SUBJECTS.filter((s) => !s.hero).sort((a, b) => a.date.localeCompare(b.date));
+  let focusId =
+    localStorage.getItem(STORAGE_KEY) ||
+    (SUBJECTS.find((s) => s.defaultHero) || SUBJECTS[0]).id;
+  if (!SUBJECTS.some((s) => s.id === focusId)) {
+    focusId = (SUBJECTS.find((s) => s.defaultHero) || SUBJECTS[0]).id;
+  }
 
-  function renderHeroSkeleton() {
+  let verseIndex = Number(localStorage.getItem(VERSE_KEY));
+  if (!Number.isFinite(verseIndex) || verseIndex < 0 || verseIndex >= VERSES.length) {
+    verseIndex = 0;
+  }
+
+  function getFocus() {
+    return SUBJECTS.find((s) => s.id === focusId) || SUBJECTS[0];
+  }
+
+  function renderVerse() {
+    const v = VERSES[verseIndex];
+    verseTextEl.innerHTML = `${v.zh}<br /><span style="font-weight:600;opacity:.92">${v.en}</span>`;
+    verseRefEl.textContent = v.ref;
+    localStorage.setItem(VERSE_KEY, String(verseIndex));
+  }
+
+  function renderVerseList() {
+    verseListEl.innerHTML = VERSES.map(
+      (v) => `<li><strong>${v.ref}</strong><br />${v.zh}<br /><em>${v.en}</em></li>`
+    ).join("");
+  }
+
+  function renderHero() {
+    const focus = getFocus();
     heroEl.innerHTML = `
       <span class="hero-label">Main focus · 主科焦點</span>
-      <h2>${hero.zh}</h2>
-      <p class="en-name">${hero.en}</p>
-      <p class="hero-date">${formatDisplayDate(hero.date)} · 08:30 HKT</p>
-      <p class="hero-encourage">${hero.tipZh}<br /><span style="font-weight:500;opacity:.9">${hero.tipEn}</span></p>
+      <h2>${focus.zh}</h2>
+      <p class="en-name">${focus.en}</p>
+      <p class="hero-date">${formatDisplayDate(focus.date)} · 08:30 HKT</p>
+      <p class="hero-encourage">${focus.tipZh}<br /><span style="font-weight:500;opacity:.9">${focus.tipEn}</span></p>
       <div class="countdown" id="hero-count"></div>
       <div id="hero-done" hidden class="done-banner">已考 / Exam over — 為下一科繼續加油！You’ve cleared this one. Keep going.</div>
+      <p class="hero-hint">撳下面科目可更換主科焦點 · Click a subject card below to change focus</p>
     `;
   }
 
-  function renderListSkeleton() {
-    listEl.innerHTML = others
-      .map((s, i) => {
-        const tone = TONES[i % TONES.length];
+  function renderList() {
+    listEl.innerHTML = byDate
+      .map((s) => {
+        const tone = toneById[s.id];
+        const selected = s.id === focusId;
         return `
-      <article class="card ${tone}" data-id="${s.id}" data-date="${s.date}">
+      <article class="card ${tone}${selected ? " is-focus" : ""}" data-id="${s.id}" data-date="${s.date}" role="button" tabindex="0" aria-pressed="${selected ? "true" : "false"}">
+        <p class="card-pick">${selected ? "✓ 而家係 Main focus · Current focus" : "撳呢度設為 Main focus · Set as Main focus"}</p>
         <h3 class="card-title">${s.zh}</h3>
         <p class="card-en">${s.en}</p>
         <p class="card-date">${formatDisplayDate(s.date)} · 08:30 HKT</p>
@@ -113,6 +215,7 @@
   }
 
   function paintUnits(container, parts, compact) {
+    if (!container) return;
     const units = [
       { value: parts.days, label: compact ? "Days" : "Days · 日" },
       { value: parts.hours, label: compact ? "Hrs" : "Hours · 時" },
@@ -140,31 +243,29 @@
 
   function tick() {
     const now = Date.now();
-
-    const heroParts = splitRemaining(targetMs(hero.date) - now);
+    const focus = getFocus();
+    const heroParts = splitRemaining(targetMs(focus.date) - now);
     const heroCount = document.getElementById("hero-count");
     const heroDone = document.getElementById("hero-done");
     if (heroParts.done) {
       heroEl.classList.add("done");
       paintUnits(heroCount, heroParts, false);
-      heroDone.hidden = false;
+      if (heroDone) heroDone.hidden = false;
     } else {
       heroEl.classList.remove("done");
       paintUnits(heroCount, heroParts, false);
-      heroDone.hidden = true;
+      if (heroDone) heroDone.hidden = true;
     }
 
-    for (const s of others) {
+    for (const s of byDate) {
       const parts = splitRemaining(targetMs(s.date) - now);
-      const card = listEl.querySelector(`[data-id="${s.id}"]`);
       const count = document.getElementById(`count-${s.id}`);
       const over = document.getElementById(`over-${s.id}`);
+      if (!count || !over) continue;
       if (parts.done) {
-        card.classList.add("done");
         count.hidden = true;
         over.hidden = false;
       } else {
-        card.classList.remove("done");
         count.hidden = false;
         over.hidden = true;
         paintUnits(count, parts, true);
@@ -172,8 +273,39 @@
     }
   }
 
-  renderHeroSkeleton();
-  renderListSkeleton();
+  function setFocus(id) {
+    if (!SUBJECTS.some((s) => s.id === id)) return;
+    focusId = id;
+    localStorage.setItem(STORAGE_KEY, id);
+    renderHero();
+    renderList();
+    tick();
+    heroEl.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  listEl.addEventListener("click", (e) => {
+    const card = e.target.closest(".card");
+    if (!card) return;
+    setFocus(card.dataset.id);
+  });
+
+  listEl.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const card = e.target.closest(".card");
+    if (!card) return;
+    e.preventDefault();
+    setFocus(card.dataset.id);
+  });
+
+  verseNextBtn.addEventListener("click", () => {
+    verseIndex = (verseIndex + 1) % VERSES.length;
+    renderVerse();
+  });
+
+  renderVerse();
+  renderVerseList();
+  renderHero();
+  renderList();
   tick();
   setInterval(tick, 1000);
 })();
