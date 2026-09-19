@@ -1,6 +1,7 @@
 /**
- * 2027 HKDSE countdown — all targets are 08:30 Asia/Hong_Kong (+08:00).
- * Performance: build DOM once; each second only updates number text (no innerHTML thrash).
+ * 2027 HKDSE countdown — 08:30 Asia/Hong_Kong (+08:00).
+ * Default Main focus: 中國語文. Auto-advance to next upcoming when focus completes.
+ * Scripture: Traditional Chinese (CUV-style) + English.
  */
 (function () {
   const EXAM_HOUR = 8;
@@ -14,64 +15,65 @@
     "tone-purple", "tone-fuchsia", "tone-pink", "tone-rose",
   ];
 
+  /* 和合本繁體 + English */
   const VERSES = [
     {
-      zh: "我靠着那加给我力量的，凡事都能做。",
+      zh: "我靠著那加給我力量的，凡事都能做。",
       en: "I can do all this through him who gives me strength.",
       ref: "腓立比書 4:13 · Philippians 4:13",
     },
     {
-      zh: "你不要害怕，因为我与你同在；不要惊惶，因为我是你的神。我必坚固你，我必帮助你。",
+      zh: "你不要害怕，因為我與你同在；不要驚惶，因為我是你的神。我必堅固你，我必幫助你。",
       en: "So do not fear, for I am with you; do not be dismayed, for I am your God. I will strengthen you and help you.",
       ref: "以賽亞書 41:10 · Isaiah 41:10",
     },
     {
-      zh: "你当刚强壮胆！不要惧怕，也不要惊惶；因为你无论往哪里去，耶和华你的神必与你同在。",
+      zh: "你當剛強壯膽！不要懼怕，也不要驚惶；因為你無論往哪裡去，耶和華你的神必與你同在。",
       en: "Be strong and courageous. Do not be afraid; do not be discouraged, for the Lord your God will be with you wherever you go.",
       ref: "約書亞記 1:9 · Joshua 1:9",
     },
     {
-      zh: "神是我们的避难所，是我们的力量，是我们在患难中随时的帮助。",
+      zh: "神是我們的避難所，是我們的力量，是我們在患難中隨時的幫助。",
       en: "God is our refuge and strength, an ever-present help in trouble.",
       ref: "詩篇 46:1 · Psalm 46:1",
     },
     {
-      zh: "你要专心仰赖耶和华，不可倚靠自己的聪明，在你一切所行的事上都要认定他，他必指引你的路。",
+      zh: "你要專心仰賴耶和華，不可倚靠自己的聰明，在你一切所行的事上都要認定他，他必指引你的路。",
       en: "Trust in the Lord with all your heart and lean not on your own understanding; in all your ways submit to him, and he will make your paths straight.",
       ref: "箴言 3:5–6 · Proverbs 3:5–6",
     },
     {
-      zh: "耶稣看着他们，说：在人这是不能的，在神凡事都能。",
+      zh: "耶穌看著他們，說：在人這是不能的，在神凡事都能。",
       en: "Jesus looked at them and said, “With man this is impossible, but with God all things are possible.”",
       ref: "馬太福音 19:26 · Matthew 19:26",
     },
     {
-      zh: "因为神赐给我们，不是胆怯的心，乃是刚强、仁爱、谨守的心。",
+      zh: "因為神賜給我們，不是膽怯的心，乃是剛強、仁愛、謹守的心。",
       en: "For the Spirit God gave us does not make us timid, but gives us power, love and self-discipline.",
       ref: "提摩太後書 1:7 · 2 Timothy 1:7",
     },
     {
-      zh: "你的话是我脚前的灯，是我路上的光。",
+      zh: "你的話是我腳前的燈，是我路上的光。",
       en: "Your word is a lamp for my feet, a light on my path.",
       ref: "詩篇 119:105 · Psalm 119:105",
     },
     {
-      zh: "耶和华说：我知道我向你们所怀的意念是赐平安的意念，不是降灾祸的意念，要叫你们末后有指望。",
+      zh: "耶和華說：我知道我向你們所懷的意念是賜平安的意念，不是降災禍的意念，要叫你們末後有指望。",
       en: "“For I know the plans I have for you,” declares the Lord, “plans to prosper you and not to harm you, plans to give you hope and a future.”",
       ref: "耶利米書 29:11 · Jeremiah 29:11",
     },
     {
-      zh: "我们晓得万事都互相效力，叫爱神的人得益处。",
+      zh: "我們曉得萬事都互相效力，叫愛神的人得益處。",
       en: "And we know that in all things God works for the good of those who love him.",
       ref: "羅馬書 8:28 · Romans 8:28",
     },
     {
-      zh: "凡劳苦担重担的人可以到我这里来，我就使你们得安息。",
+      zh: "凡勞苦擔重擔的人可以到我這裡來，我就使你們得安息。",
       en: "Come to me, all you who are weary and burdened, and I will give you rest.",
       ref: "馬太福音 11:28 · Matthew 11:28",
     },
     {
-      zh: "应当一无挂虑，只要凡事借着祷告、祈求，和感谢，将你们所要的告诉神。",
+      zh: "應當一無掛慮，只要凡事藉著禱告、祈求，和感謝，將你們所要的告訴神。",
       en: "Do not be anxious about anything, but in every situation, by prayer and petition, with thanksgiving, present your requests to God.",
       ref: "腓立比書 4:6 · Philippians 4:6",
     },
@@ -119,7 +121,6 @@
     ).getTime();
   }
 
-  // Precompute timestamps once
   const targetById = Object.fromEntries(SUBJECTS.map((s) => [s.id, targetMs(s.date)]));
 
   function formatDisplayDate(isoDate) {
@@ -138,15 +139,30 @@
       return { done: true, days: 0, hours: 0, minutes: 0, seconds: 0 };
     }
     const totalSec = (ms / 1000) | 0;
-    const days = (totalSec / 86400) | 0;
-    const hours = ((totalSec % 86400) / 3600) | 0;
-    const minutes = ((totalSec % 3600) / 60) | 0;
-    const seconds = totalSec % 60;
-    return { done: false, days, hours, minutes, seconds };
+    return {
+      done: false,
+      days: (totalSec / 86400) | 0,
+      hours: ((totalSec % 86400) / 3600) | 0,
+      minutes: ((totalSec % 3600) / 60) | 0,
+      seconds: totalSec % 60,
+    };
   }
 
   function pad(n) {
     return n < 10 ? "0" + n : String(n);
+  }
+
+  function isDone(id, now) {
+    return now >= targetById[id];
+  }
+
+  /** Next upcoming subject by date; prefer Chinese if still upcoming and no stored choice needing override */
+  function nextUpcoming(now, excludeId) {
+    for (const s of byDate) {
+      if (excludeId && s.id === excludeId) continue;
+      if (!isDone(s.id, now)) return s;
+    }
+    return null;
   }
 
   const heroEl = document.getElementById("hero");
@@ -156,11 +172,13 @@
   const verseNextBtn = document.getElementById("verse-next");
   const verseListEl = document.getElementById("verse-list");
 
-  let focusId =
-    localStorage.getItem(STORAGE_KEY) ||
-    (SUBJECTS.find((s) => s.defaultHero) || SUBJECTS[0]).id;
-  if (!subjectById[focusId]) {
-    focusId = (SUBJECTS.find((s) => s.defaultHero) || SUBJECTS[0]).id;
+  const defaultId = (SUBJECTS.find((s) => s.defaultHero) || SUBJECTS[0]).id;
+  let focusId = localStorage.getItem(STORAGE_KEY) || defaultId;
+  if (!subjectById[focusId]) focusId = defaultId;
+
+  // First visit / invalid: always Chinese if still upcoming
+  if (!localStorage.getItem(STORAGE_KEY)) {
+    focusId = defaultId;
   }
 
   let verseIndex = Number(localStorage.getItem(VERSE_KEY));
@@ -168,11 +186,9 @@
     verseIndex = 0;
   }
 
-  /** @type {{days:HTMLElement,hours:HTMLElement,minutes:HTMLElement,seconds:HTMLElement}|null} */
   let heroVals = null;
-  /** @type {HTMLElement|null} */
   let heroDoneEl = null;
-  /** @type {Record<string,{days:HTMLElement,hours:HTMLElement,minutes:HTMLElement,seconds:HTMLElement,count:HTMLElement,over:HTMLElement,card:HTMLElement}>} */
+  let heroCountWrap = null;
   const cardRefs = {};
 
   function getFocus() {
@@ -186,7 +202,8 @@
     verseTextEl.appendChild(document.createElement("br"));
     const en = document.createElement("span");
     en.style.fontWeight = "600";
-    en.style.opacity = "0.92";
+    en.style.opacity = "0.9";
+    en.style.fontSize = "0.82em";
     en.textContent = v.en;
     verseTextEl.appendChild(en);
     verseRefEl.textContent = v.ref;
@@ -259,19 +276,18 @@
 
     const units = buildUnitRow(false);
     units.wrap.id = "hero-count";
+    heroCountWrap = units.wrap;
     heroVals = units.refs;
 
     heroDoneEl = document.createElement("div");
-    heroDoneEl.id = "hero-done";
-    heroDoneEl.className = "done-banner";
+    heroDoneEl.className = "completed-badge";
     heroDoneEl.hidden = true;
-    heroDoneEl.textContent =
-      "已考 / Exam over — 為下一科繼續加油！You’ve cleared this one. Keep going.";
+    heroDoneEl.textContent = "✓ Completed · 已完成";
 
     const hint = document.createElement("p");
     hint.className = "hero-hint";
     hint.textContent =
-      "撳下面科目可更換主科焦點 · Click a subject card below to change focus";
+      "撳下面科目可更換主科焦點；考完會自動跳去下一科 · Click a card to change focus; auto-advances when completed";
 
     heroEl.append(label, h2, en, date, tip, units.wrap, heroDoneEl, hint);
   }
@@ -287,7 +303,6 @@
       const card = document.createElement("article");
       card.className = `card ${tone}${selected ? " is-focus" : ""}`;
       card.dataset.id = s.id;
-      card.dataset.date = s.date;
       card.tabIndex = 0;
       card.setAttribute("role", "button");
       card.setAttribute("aria-pressed", selected ? "true" : "false");
@@ -321,13 +336,10 @@
       tip.appendChild(tipEn);
 
       const units = buildUnitRow(true);
-      units.wrap.id = `count-${s.id}`;
-
       const over = document.createElement("p");
       over.className = "card-over";
-      over.id = `over-${s.id}`;
       over.hidden = true;
-      over.textContent = "已考 / Exam over — 做得好！Well done.";
+      over.textContent = "✓ Completed · 已完成";
 
       card.append(pick, title, en, date, tip, units.wrap, over);
       frag.appendChild(card);
@@ -347,24 +359,67 @@
   }
 
   function setText(el, value) {
-    if (el.textContent !== value) el.textContent = value;
+    if (el && el.textContent !== value) el.textContent = value;
+  }
+
+  function markListFocus() {
+    for (const s of byDate) {
+      const ref = cardRefs[s.id];
+      if (!ref) continue;
+      const selected = s.id === focusId;
+      ref.card.classList.toggle("is-focus", selected);
+      ref.card.setAttribute("aria-pressed", selected ? "true" : "false");
+      ref.pick.textContent = selected
+        ? "✓ 而家係 Main focus · Current focus"
+        : "撳呢度設為 Main focus · Set as Main focus";
+    }
+  }
+
+  function applyFocus(id, { persist, rebuildHero, scroll }) {
+    if (!subjectById[id]) return;
+    const changed = id !== focusId;
+    focusId = id;
+    if (persist) localStorage.setItem(STORAGE_KEY, id);
+    if (changed || rebuildHero) {
+      renderHero();
+      markListFocus();
+    }
+    if (scroll) heroEl.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function autoAdvanceIfNeeded(now) {
+    if (!isDone(focusId, now)) return false;
+    const next = nextUpcoming(now, focusId);
+    if (!next) {
+      // All done — keep last focus but show Completed
+      return false;
+    }
+    // Prefer advancing; if stored focus is completed, move to next upcoming
+    applyFocus(next.id, { persist: true, rebuildHero: true, scroll: false });
+    return true;
   }
 
   function tick() {
     const now = Date.now();
+    autoAdvanceIfNeeded(now);
+
     const focus = getFocus();
     const heroParts = splitRemaining(targetById[focus.id] - now);
 
-    if (heroVals) {
-      setText(heroVals.days, String(heroParts.days));
-      setText(heroVals.hours, pad(heroParts.hours));
-      setText(heroVals.minutes, pad(heroParts.minutes));
-      setText(heroVals.seconds, pad(heroParts.seconds));
-    }
-    if (heroDoneEl) {
-      const showDone = heroParts.done;
-      if (heroDoneEl.hidden === showDone) heroDoneEl.hidden = !showDone;
-      heroEl.classList.toggle("done", showDone);
+    if (heroParts.done) {
+      heroEl.classList.add("done");
+      if (heroCountWrap) heroCountWrap.hidden = true;
+      if (heroDoneEl) heroDoneEl.hidden = false;
+    } else {
+      heroEl.classList.remove("done");
+      if (heroCountWrap) heroCountWrap.hidden = false;
+      if (heroDoneEl) heroDoneEl.hidden = true;
+      if (heroVals) {
+        setText(heroVals.days, String(heroParts.days));
+        setText(heroVals.hours, pad(heroParts.hours));
+        setText(heroVals.minutes, pad(heroParts.minutes));
+        setText(heroVals.seconds, pad(heroParts.seconds));
+      }
     }
 
     for (let i = 0; i < byDate.length; i++) {
@@ -373,12 +428,12 @@
       if (!ref) continue;
       const parts = splitRemaining(targetById[s.id] - now);
       if (parts.done) {
-        if (!ref.count.hidden) ref.count.hidden = true;
-        if (ref.over.hidden) ref.over.hidden = false;
+        ref.count.hidden = true;
+        ref.over.hidden = false;
         ref.card.classList.add("done");
       } else {
-        if (ref.count.hidden) ref.count.hidden = false;
-        if (!ref.over.hidden) ref.over.hidden = true;
+        ref.count.hidden = false;
+        ref.over.hidden = true;
         ref.card.classList.remove("done");
         setText(ref.days, String(parts.days));
         setText(ref.hours, pad(parts.hours));
@@ -389,24 +444,13 @@
   }
 
   function setFocus(id) {
-    if (!subjectById[id] || id === focusId) return;
-    const prev = cardRefs[focusId];
-    if (prev) {
-      prev.card.classList.remove("is-focus");
-      prev.card.setAttribute("aria-pressed", "false");
-      prev.pick.textContent = "撳呢度設為 Main focus · Set as Main focus";
-    }
-    focusId = id;
-    localStorage.setItem(STORAGE_KEY, id);
-    renderHero();
-    const next = cardRefs[id];
-    if (next) {
-      next.card.classList.add("is-focus");
-      next.card.setAttribute("aria-pressed", "true");
-      next.pick.textContent = "✓ 而家係 Main focus · Current focus";
-    }
+    const now = Date.now();
+    // Allow selecting a completed subject to view Completed state, but if they pick
+    // an upcoming one, focus that. If they pick completed, show it briefly then
+    // still OK — user asked top to show coming subjects when ended, so if they
+    // click completed we show Completed; auto-advance only when current focus ends.
+    applyFocus(id, { persist: true, rebuildHero: true, scroll: true });
     tick();
-    heroEl.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   listEl.addEventListener("click", (e) => {
@@ -427,6 +471,15 @@
     verseIndex = (verseIndex + 1) % VERSES.length;
     renderVerse();
   });
+
+  // Ensure default Chinese on first load even if an earlier subject exists
+  if (!localStorage.getItem(STORAGE_KEY)) {
+    focusId = defaultId;
+    localStorage.setItem(STORAGE_KEY, defaultId);
+  } else if (isDone(focusId, Date.now())) {
+    const next = nextUpcoming(Date.now());
+    if (next) focusId = next.id;
+  }
 
   renderVerse();
   renderVerseList();

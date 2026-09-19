@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>2027 HKDSE Countdown | 文憑試倒數</title>
   <meta name="description" content="2027 Hong Kong Diploma of Secondary Education exam countdown. Chinese Language featured." />
-  <link rel="stylesheet" href="styles.css?v=20260919d" />
+  <link rel="stylesheet" href="styles.css?v=20260919e" />
 </head>
 <body>
   <div class="bg-glow" aria-hidden="true"></div>
@@ -13,20 +13,22 @@
     <p class="eyebrow">Hong Kong Diploma of Secondary Education · 香港中學文憑考試</p>
     <h1>2027 Exam Countdown</h1>
     <p class="subtitle">考試倒數 · 分秒必爭 · Every second counts</p>
-    <p class="tagline">你已經走得好遠——而家每一步都算數。<br /><span lang="en">You have come so far. Every step from here still counts.</span></p>
   </header>
 
   <main>
-    <section class="encourage-banner" aria-label="Encouragement">
-      <p class="encourage-zh">穩步溫習，唔使同人比較。專心今天可做到嘅事，考試日你會多謝而家嘅自己。</p>
-      <p class="encourage-en">Study steadily. Don’t compare. Focus on what you can do today — future you will thank present you.</p>
-    </section>
-
-    <section class="verse-panel" aria-label="Bible encouragement">
-      <p class="verse-kicker">聖經鼓勵 · Scripture for courage</p>
-      <blockquote id="verse-text" class="verse-text"></blockquote>
-      <p id="verse-ref" class="verse-ref"></p>
-      <button type="button" id="verse-next" class="verse-next">下一節 · Next verse</button>
+    <section class="top-encourage" aria-label="Encouragement and scripture">
+      <div class="encourage-compact">
+        <p class="encourage-zh">穩步溫習，唔使同人比較。專心今天可做到嘅事。</p>
+        <p class="encourage-en">Study steadily. Focus on what you can do today.</p>
+      </div>
+      <div class="verse-compact" aria-label="Bible encouragement">
+        <p class="verse-kicker">聖經鼓勵 · Scripture</p>
+        <blockquote id="verse-text" class="verse-text"></blockquote>
+        <div class="verse-actions">
+          <p id="verse-ref" class="verse-ref"></p>
+          <button type="button" id="verse-next" class="verse-next">下一節</button>
+        </div>
+      </div>
     </section>
 
     <section id="hero" class="hero tone-hero" aria-live="polite">
@@ -36,7 +38,7 @@
     <section class="subjects-section">
       <div class="section-head">
         <h2>All confirmed subjects</h2>
-        <p>撳下面任一科，上方 Main focus 會跟住轉 · Click a subject to set it as Main focus</p>
+        <p>撳科目卡可設為 Main focus · Click a subject to set Main focus · 考完顯示 Completed</p>
       </div>
       <div id="subject-list" class="subject-grid">
         <!-- filled by JS -->
@@ -54,7 +56,7 @@
         <li>Exams measure preparation — not your worth.</li>
       </ul>
       <div class="verse-list">
-        <h3>More verses · 更多經文</h3>
+        <h3>More verses · 更多經文（和合本繁體）</h3>
         <ul id="verse-list"></ul>
       </div>
     </section>
@@ -63,9 +65,9 @@
   <footer class="site-footer">
     <p>Source: 2027 HKDSE Examination Timetable（考試時間表）.</p>
     <p>Written papers assumed <strong>08:30 HKT</strong>. Subjects without a confirmed single date are omitted (Note 2).</p>
-    <p class="tz-note">All countdowns use Asia/Hong_Kong time. Chinese scripture text: 和合本（繁體）style; English: common public translations for encouragement.</p>
+    <p class="tz-note">Countdowns use Asia/Hong_Kong. Default Main focus: 中國語文. Scripture: 和合本（繁體）+ English.</p>
   </footer>
 
-  <script src="app.js?v=20260919d"></script>
+  <script src="app.js?v=20260919e"></script>
 </body>
 </html>

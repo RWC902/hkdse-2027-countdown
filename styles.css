@@ -19,7 +19,7 @@ html, body {
 body {
   position: relative;
   overflow-x: hidden;
-  padding: 1.5rem 1.25rem 3rem;
+  padding: 1rem 1rem 2.5rem;
 }
 
 /* Soft abstract wash only — no sun / clouds */
@@ -47,7 +47,7 @@ main,
 
 .site-header {
   text-align: center;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.75rem;
 }
 
 .eyebrow {
@@ -508,4 +508,138 @@ main,
   margin: 0.55rem 0;
   font-weight: 600;
   color: #334155;
+}
+
+
+/* Compact encouragement + verse row */
+.top-encourage {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 0.65rem;
+  margin-bottom: 0.85rem;
+}
+
+@media (max-width: 720px) {
+  .top-encourage { grid-template-columns: 1fr; }
+}
+
+.encourage-compact,
+.verse-compact {
+  padding: 0.55rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+
+.encourage-compact {
+  background: linear-gradient(90deg, #fef2f2, #fff7ed, #fefce8, #f0fdf4, #eff6ff);
+}
+
+.encourage-compact .encourage-zh {
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #1e293b;
+}
+
+.encourage-compact .encourage-en {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  color: #64748b;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.verse-compact {
+  background: linear-gradient(135deg, #fffbeb, #f5f3ff 60%, #eff6ff);
+}
+
+.verse-compact .verse-kicker {
+  margin: 0 0 0.25rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6d28d9;
+}
+
+.verse-compact .verse-text {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #1e1b4b;
+  text-align: left;
+}
+
+.verse-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.verse-compact .verse-ref {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #6366f1;
+  text-align: left;
+}
+
+.verse-compact .verse-next {
+  flex-shrink: 0;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.72rem;
+  border-radius: 999px;
+  border: 0;
+  cursor: pointer;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(180deg, #818cf8, #4f46e5);
+}
+
+.site-header h1 {
+  font-size: clamp(1.55rem, 3.5vw, 2.2rem) !important;
+}
+
+.site-header .subtitle {
+  margin-top: 0.25rem !important;
+  font-size: 0.95rem !important;
+}
+
+.hero {
+  margin-bottom: 1.25rem !important;
+  padding: clamp(1rem, 2.5vw, 1.6rem) !important;
+}
+
+.hero-encourage {
+  margin-bottom: 0.85rem !important;
+  padding: 0.55rem 0.7rem !important;
+  font-size: 0.88rem !important;
+}
+
+.completed-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 12px;
+  background: #dcfce7;
+  color: #166534;
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.card-over {
+  font-size: 1rem !important;
+  letter-spacing: 0.02em;
+}
+
+.hero.done .countdown {
+  display: none;
 }
