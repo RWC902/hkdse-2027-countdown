@@ -1,5 +1,6 @@
 /**
  * 2027 HKDSE countdown — all targets are 08:30 Asia/Hong_Kong (+08:00).
+ * Performance: build DOM once; each second only updates number text (no innerHTML thrash).
  */
 (function () {
   const EXAM_HOUR = 8;
@@ -76,7 +77,6 @@
     },
   ];
 
-  /** @type {{id:string, zh:string, en:string, date:string, defaultHero?:boolean, tipZh:string, tipEn:string}[]} */
   const SUBJECTS = [
     {
       id: "chi",
@@ -111,12 +111,16 @@
 
   const byDate = SUBJECTS.slice().sort((a, b) => a.date.localeCompare(b.date));
   const toneById = Object.fromEntries(byDate.map((s, i) => [s.id, TONES[i % TONES.length]]));
+  const subjectById = Object.fromEntries(SUBJECTS.map((s) => [s.id, s]));
 
   function targetMs(isoDate) {
     return new Date(
       `${isoDate}T${String(EXAM_HOUR).padStart(2, "0")}:${String(EXAM_MINUTE).padStart(2, "0")}:00+08:00`
     ).getTime();
   }
+
+  // Precompute timestamps once
+  const targetById = Object.fromEntries(SUBJECTS.map((s) => [s.id, targetMs(s.date)]));
 
   function formatDisplayDate(isoDate) {
     const d = new Date(`${isoDate}T12:00:00+08:00`);
@@ -133,16 +137,16 @@
     if (ms <= 0) {
       return { done: true, days: 0, hours: 0, minutes: 0, seconds: 0 };
     }
-    const totalSec = Math.floor(ms / 1000);
-    const days = Math.floor(totalSec / 86400);
-    const hours = Math.floor((totalSec % 86400) / 3600);
-    const minutes = Math.floor((totalSec % 3600) / 60);
+    const totalSec = (ms / 1000) | 0;
+    const days = (totalSec / 86400) | 0;
+    const hours = ((totalSec % 86400) / 3600) | 0;
+    const minutes = ((totalSec % 3600) / 60) | 0;
     const seconds = totalSec % 60;
     return { done: false, days, hours, minutes, seconds };
   }
 
   function pad(n) {
-    return String(n).padStart(2, "0");
+    return n < 10 ? "0" + n : String(n);
   }
 
   const heroEl = document.getElementById("hero");
@@ -155,7 +159,7 @@
   let focusId =
     localStorage.getItem(STORAGE_KEY) ||
     (SUBJECTS.find((s) => s.defaultHero) || SUBJECTS[0]).id;
-  if (!SUBJECTS.some((s) => s.id === focusId)) {
+  if (!subjectById[focusId]) {
     focusId = (SUBJECTS.find((s) => s.defaultHero) || SUBJECTS[0]).id;
   }
 
@@ -164,121 +168,243 @@
     verseIndex = 0;
   }
 
+  /** @type {{days:HTMLElement,hours:HTMLElement,minutes:HTMLElement,seconds:HTMLElement}|null} */
+  let heroVals = null;
+  /** @type {HTMLElement|null} */
+  let heroDoneEl = null;
+  /** @type {Record<string,{days:HTMLElement,hours:HTMLElement,minutes:HTMLElement,seconds:HTMLElement,count:HTMLElement,over:HTMLElement,card:HTMLElement}>} */
+  const cardRefs = {};
+
   function getFocus() {
-    return SUBJECTS.find((s) => s.id === focusId) || SUBJECTS[0];
+    return subjectById[focusId];
   }
 
   function renderVerse() {
     const v = VERSES[verseIndex];
-    verseTextEl.innerHTML = `${v.zh}<br /><span style="font-weight:600;opacity:.92">${v.en}</span>`;
+    verseTextEl.textContent = "";
+    verseTextEl.appendChild(document.createTextNode(v.zh));
+    verseTextEl.appendChild(document.createElement("br"));
+    const en = document.createElement("span");
+    en.style.fontWeight = "600";
+    en.style.opacity = "0.92";
+    en.textContent = v.en;
+    verseTextEl.appendChild(en);
     verseRefEl.textContent = v.ref;
     localStorage.setItem(VERSE_KEY, String(verseIndex));
   }
 
   function renderVerseList() {
-    verseListEl.innerHTML = VERSES.map(
-      (v) => `<li><strong>${v.ref}</strong><br />${v.zh}<br /><em>${v.en}</em></li>`
-    ).join("");
+    const frag = document.createDocumentFragment();
+    for (const v of VERSES) {
+      const li = document.createElement("li");
+      li.innerHTML = `<strong>${v.ref}</strong><br />${v.zh}<br /><em>${v.en}</em>`;
+      frag.appendChild(li);
+    }
+    verseListEl.replaceChildren(frag);
+  }
+
+  function buildUnitRow(compact) {
+    const labels = compact
+      ? ["Days", "Hrs", "Min", "Sec"]
+      : ["Days · 日", "Hours · 時", "Minutes · 分", "Seconds · 秒"];
+    const wrap = document.createElement("div");
+    wrap.className = compact ? "card-count" : "countdown";
+    const refs = {};
+    const keys = ["days", "hours", "minutes", "seconds"];
+    for (let i = 0; i < 4; i++) {
+      const box = document.createElement("div");
+      box.className = compact ? "mini" : "unit";
+      const strong = document.createElement(compact ? "strong" : "span");
+      if (!compact) strong.className = "value";
+      strong.textContent = "0";
+      const lab = document.createElement("span");
+      if (!compact) lab.className = "label";
+      lab.textContent = labels[i];
+      box.appendChild(strong);
+      box.appendChild(lab);
+      wrap.appendChild(box);
+      refs[keys[i]] = strong;
+    }
+    return { wrap, refs };
   }
 
   function renderHero() {
     const focus = getFocus();
-    heroEl.innerHTML = `
-      <span class="hero-label">Main focus · 主科焦點</span>
-      <h2>${focus.zh}</h2>
-      <p class="en-name">${focus.en}</p>
-      <p class="hero-date">${formatDisplayDate(focus.date)} · 08:30 HKT</p>
-      <p class="hero-encourage">${focus.tipZh}<br /><span style="font-weight:500;opacity:.9">${focus.tipEn}</span></p>
-      <div class="countdown" id="hero-count"></div>
-      <div id="hero-done" hidden class="done-banner">已考 / Exam over — 為下一科繼續加油！You’ve cleared this one. Keep going.</div>
-      <p class="hero-hint">撳下面科目可更換主科焦點 · Click a subject card below to change focus</p>
-    `;
+    heroEl.replaceChildren();
+
+    const label = document.createElement("span");
+    label.className = "hero-label";
+    label.textContent = "Main focus · 主科焦點";
+
+    const h2 = document.createElement("h2");
+    h2.textContent = focus.zh;
+
+    const en = document.createElement("p");
+    en.className = "en-name";
+    en.textContent = focus.en;
+
+    const date = document.createElement("p");
+    date.className = "hero-date";
+    date.textContent = `${formatDisplayDate(focus.date)} · 08:30 HKT`;
+
+    const tip = document.createElement("p");
+    tip.className = "hero-encourage";
+    tip.appendChild(document.createTextNode(focus.tipZh));
+    tip.appendChild(document.createElement("br"));
+    const tipEn = document.createElement("span");
+    tipEn.style.fontWeight = "500";
+    tipEn.style.opacity = "0.9";
+    tipEn.textContent = focus.tipEn;
+    tip.appendChild(tipEn);
+
+    const units = buildUnitRow(false);
+    units.wrap.id = "hero-count";
+    heroVals = units.refs;
+
+    heroDoneEl = document.createElement("div");
+    heroDoneEl.id = "hero-done";
+    heroDoneEl.className = "done-banner";
+    heroDoneEl.hidden = true;
+    heroDoneEl.textContent =
+      "已考 / Exam over — 為下一科繼續加油！You’ve cleared this one. Keep going.";
+
+    const hint = document.createElement("p");
+    hint.className = "hero-hint";
+    hint.textContent =
+      "撳下面科目可更換主科焦點 · Click a subject card below to change focus";
+
+    heroEl.append(label, h2, en, date, tip, units.wrap, heroDoneEl, hint);
   }
 
   function renderList() {
-    listEl.innerHTML = byDate
-      .map((s) => {
-        const tone = toneById[s.id];
-        const selected = s.id === focusId;
-        return `
-      <article class="card ${tone}${selected ? " is-focus" : ""}" data-id="${s.id}" data-date="${s.date}" role="button" tabindex="0" aria-pressed="${selected ? "true" : "false"}">
-        <p class="card-pick">${selected ? "✓ 而家係 Main focus · Current focus" : "撳呢度設為 Main focus · Set as Main focus"}</p>
-        <h3 class="card-title">${s.zh}</h3>
-        <p class="card-en">${s.en}</p>
-        <p class="card-date">${formatDisplayDate(s.date)} · 08:30 HKT</p>
-        <p class="card-encourage">${s.tipZh}<br /><span style="font-weight:500;opacity:.85">${s.tipEn}</span></p>
-        <div class="card-count" id="count-${s.id}"></div>
-        <p class="card-over" id="over-${s.id}" hidden>已考 / Exam over — 做得好！Well done.</p>
-      </article>`;
-      })
-      .join("");
+    listEl.replaceChildren();
+    Object.keys(cardRefs).forEach((k) => delete cardRefs[k]);
+
+    const frag = document.createDocumentFragment();
+    for (const s of byDate) {
+      const tone = toneById[s.id];
+      const selected = s.id === focusId;
+      const card = document.createElement("article");
+      card.className = `card ${tone}${selected ? " is-focus" : ""}`;
+      card.dataset.id = s.id;
+      card.dataset.date = s.date;
+      card.tabIndex = 0;
+      card.setAttribute("role", "button");
+      card.setAttribute("aria-pressed", selected ? "true" : "false");
+
+      const pick = document.createElement("p");
+      pick.className = "card-pick";
+      pick.textContent = selected
+        ? "✓ 而家係 Main focus · Current focus"
+        : "撳呢度設為 Main focus · Set as Main focus";
+
+      const title = document.createElement("h3");
+      title.className = "card-title";
+      title.textContent = s.zh;
+
+      const en = document.createElement("p");
+      en.className = "card-en";
+      en.textContent = s.en;
+
+      const date = document.createElement("p");
+      date.className = "card-date";
+      date.textContent = `${formatDisplayDate(s.date)} · 08:30 HKT`;
+
+      const tip = document.createElement("p");
+      tip.className = "card-encourage";
+      tip.appendChild(document.createTextNode(s.tipZh));
+      tip.appendChild(document.createElement("br"));
+      const tipEn = document.createElement("span");
+      tipEn.style.fontWeight = "500";
+      tipEn.style.opacity = "0.85";
+      tipEn.textContent = s.tipEn;
+      tip.appendChild(tipEn);
+
+      const units = buildUnitRow(true);
+      units.wrap.id = `count-${s.id}`;
+
+      const over = document.createElement("p");
+      over.className = "card-over";
+      over.id = `over-${s.id}`;
+      over.hidden = true;
+      over.textContent = "已考 / Exam over — 做得好！Well done.";
+
+      card.append(pick, title, en, date, tip, units.wrap, over);
+      frag.appendChild(card);
+
+      cardRefs[s.id] = {
+        days: units.refs.days,
+        hours: units.refs.hours,
+        minutes: units.refs.minutes,
+        seconds: units.refs.seconds,
+        count: units.wrap,
+        over,
+        card,
+        pick,
+      };
+    }
+    listEl.appendChild(frag);
   }
 
-  function paintUnits(container, parts, compact) {
-    if (!container) return;
-    const units = [
-      { value: parts.days, label: compact ? "Days" : "Days · 日" },
-      { value: parts.hours, label: compact ? "Hrs" : "Hours · 時" },
-      { value: parts.minutes, label: compact ? "Min" : "Minutes · 分" },
-      { value: parts.seconds, label: compact ? "Sec" : "Seconds · 秒" },
-    ];
-    if (compact) {
-      container.innerHTML = units
-        .map(
-          (u) => `<div class="mini"><strong>${u.label === "Days" ? u.value : pad(u.value)}</strong><span>${u.label}</span></div>`
-        )
-        .join("");
-    } else {
-      container.innerHTML = units
-        .map(
-          (u) => `
-        <div class="unit">
-          <span class="value">${u.label.startsWith("Days") ? u.value : pad(u.value)}</span>
-          <span class="label">${u.label}</span>
-        </div>`
-        )
-        .join("");
-    }
+  function setText(el, value) {
+    if (el.textContent !== value) el.textContent = value;
   }
 
   function tick() {
     const now = Date.now();
     const focus = getFocus();
-    const heroParts = splitRemaining(targetMs(focus.date) - now);
-    const heroCount = document.getElementById("hero-count");
-    const heroDone = document.getElementById("hero-done");
-    if (heroParts.done) {
-      heroEl.classList.add("done");
-      paintUnits(heroCount, heroParts, false);
-      if (heroDone) heroDone.hidden = false;
-    } else {
-      heroEl.classList.remove("done");
-      paintUnits(heroCount, heroParts, false);
-      if (heroDone) heroDone.hidden = true;
+    const heroParts = splitRemaining(targetById[focus.id] - now);
+
+    if (heroVals) {
+      setText(heroVals.days, String(heroParts.days));
+      setText(heroVals.hours, pad(heroParts.hours));
+      setText(heroVals.minutes, pad(heroParts.minutes));
+      setText(heroVals.seconds, pad(heroParts.seconds));
+    }
+    if (heroDoneEl) {
+      const showDone = heroParts.done;
+      if (heroDoneEl.hidden === showDone) heroDoneEl.hidden = !showDone;
+      heroEl.classList.toggle("done", showDone);
     }
 
-    for (const s of byDate) {
-      const parts = splitRemaining(targetMs(s.date) - now);
-      const count = document.getElementById(`count-${s.id}`);
-      const over = document.getElementById(`over-${s.id}`);
-      if (!count || !over) continue;
+    for (let i = 0; i < byDate.length; i++) {
+      const s = byDate[i];
+      const ref = cardRefs[s.id];
+      if (!ref) continue;
+      const parts = splitRemaining(targetById[s.id] - now);
       if (parts.done) {
-        count.hidden = true;
-        over.hidden = false;
+        if (!ref.count.hidden) ref.count.hidden = true;
+        if (ref.over.hidden) ref.over.hidden = false;
+        ref.card.classList.add("done");
       } else {
-        count.hidden = false;
-        over.hidden = true;
-        paintUnits(count, parts, true);
+        if (ref.count.hidden) ref.count.hidden = false;
+        if (!ref.over.hidden) ref.over.hidden = true;
+        ref.card.classList.remove("done");
+        setText(ref.days, String(parts.days));
+        setText(ref.hours, pad(parts.hours));
+        setText(ref.minutes, pad(parts.minutes));
+        setText(ref.seconds, pad(parts.seconds));
       }
     }
   }
 
   function setFocus(id) {
-    if (!SUBJECTS.some((s) => s.id === id)) return;
+    if (!subjectById[id] || id === focusId) return;
+    const prev = cardRefs[focusId];
+    if (prev) {
+      prev.card.classList.remove("is-focus");
+      prev.card.setAttribute("aria-pressed", "false");
+      prev.pick.textContent = "撳呢度設為 Main focus · Set as Main focus";
+    }
     focusId = id;
     localStorage.setItem(STORAGE_KEY, id);
     renderHero();
-    renderList();
+    const next = cardRefs[id];
+    if (next) {
+      next.card.classList.add("is-focus");
+      next.card.setAttribute("aria-pressed", "true");
+      next.pick.textContent = "✓ 而家係 Main focus · Current focus";
+    }
     tick();
     heroEl.scrollIntoView({ behavior: "smooth", block: "start" });
   }
