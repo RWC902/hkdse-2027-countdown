@@ -1,10 +1,10 @@
 /**
- * 2027 HKDSE countdown — lightweight build 20260919i
+ * 2027 HKDSE countdown — lightweight build 20260919j
  * Hero: 4 blocks / 1s. Cards: ONE text node each / 1s. No full re-render.
  */
 (function () {
   "use strict";
-  var BUILD = "20260919i";
+  var BUILD = "20260919j";
   var STORAGE_KEY = "hkdse2027-focus-id-v3";
   var VERSE_KEY = "hkdse2027-verse-i";
   var NOT_BEFORE = Date.UTC(2027, 2, 31, 16, 0, 0);
@@ -34,20 +34,16 @@
     { id:"eng3", zh:"英國語文（三）聆聽及綜合", en:"English Language Paper 3", date:"2027-04-10", tip:"抓重點、保持冷靜。" },
     { id:"math", zh:"數學必修部分", en:"Mathematics Compulsory Part", date:"2027-04-12", tip:"計錯唔緊要，懂改就係進步。" },
     { id:"csd", zh:"公民與社會發展", en:"Citizenship and Social Development", date:"2027-04-13", tip:"用事實同清晰結構表達。" },
-    { id:"hmsc", zh:"健康管理與社會關懷", en:"Health Management & Social Care", date:"2027-04-14", tip:"同理心同分析並重。" },
     { id:"chem", zh:"化學", en:"Chemistry", date:"2027-04-15", tip:"方程式同概念連起來記。" },
     { id:"geo", zh:"地理", en:"Geography", date:"2027-04-16", tip:"地圖、數據、解釋三角齊。" },
     { id:"ict", zh:"資訊及通訊科技", en:"Information & Communication Technology", date:"2027-04-17", tip:"先理解原理再寫步驟。" },
     { id:"bio", zh:"生物", en:"Biology", date:"2027-04-19", tip:"用圖同流程記系統。" },
-    { id:"dat", zh:"設計與應用科技", en:"Design & Applied Technology", date:"2027-04-20", tip:"設計要解決問題。" },
     { id:"phy", zh:"物理", en:"Physics", date:"2027-04-21", tip:"搞清公式背後嘅意思。" },
     { id:"econ", zh:"經濟", en:"Economics", date:"2027-04-22", tip:"用圖表同例子解釋。" },
     { id:"m1m2", zh:"數學延伸部分", en:"Mathematics Extended Part", date:"2027-04-23", tip:"難題拆細步。" },
     { id:"chist", zh:"中國歷史", en:"Chinese History", date:"2027-04-24", tip:"時間線同因果要清楚。" },
     { id:"bafs", zh:"企業、會計與財務概論", en:"Business, Accounting & Financial Studies", date:"2027-04-26", tip:"數字要準，解釋要清。" },
-    { id:"hist", zh:"歷史", en:"History", date:"2027-04-27", tip:"史料用來支持論點。" },
-    { id:"ths", zh:"旅遊與款待", en:"Tourism & Hospitality Studies", date:"2027-04-28", tip:"設身處地諗旅客同營運。" },
-    { id:"ers", zh:"倫理與宗教", en:"Ethics & Religious Studies", date:"2027-04-30", tip:"立場清晰，尊重觀點。" }
+    { id:"hist", zh:"歷史", en:"History", date:"2027-04-27", tip:"史料用來支持論點。" }
   ];
 
   function targetMs(iso) {
@@ -220,9 +216,6 @@
       var date = document.createElement("p");
       date.className = "card-date";
       date.textContent = fmtDate(s.date) + " · 08:30 HKT";
-      var tip = document.createElement("p");
-      tip.className = "card-encourage";
-      tip.textContent = s.tip;
       var clock = document.createElement("div");
       clock.className = "card-clock";
       clock.textContent = "—";
@@ -231,7 +224,7 @@
       over.textContent = "✓ Completed · 已完成";
 
       card.appendChild(pick); card.appendChild(title); card.appendChild(en);
-      card.appendChild(date); card.appendChild(tip); card.appendChild(clock); card.appendChild(over);
+      card.appendChild(date); card.appendChild(clock); card.appendChild(over);
       frag.appendChild(card);
       cardRefs[s.id] = { clock: clock, over: over, card: card, pick: pick, done: false };
     }
