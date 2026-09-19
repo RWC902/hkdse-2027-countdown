@@ -643,3 +643,14 @@ main,
 .hero.done .countdown {
   display: none;
 }
+
+.verse-en {
+  display: inline-block;
+  margin-top: 0.15rem;
+  font-size: 0.78em;
+  font-weight: 600;
+  opacity: 0.88;
+}
+.card.done {
+  opacity: 0.78;
+}
