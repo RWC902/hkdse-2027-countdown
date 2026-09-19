@@ -4,11 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>2027 HKDSE Countdown | 文憑試倒數</title>
-  <meta name="description" content="2027 Hong Kong Diploma of Secondary Education exam countdown. Chinese Language featured." />
-  <link rel="stylesheet" href="styles.css?v=20260919g" />
+  <meta name="description" content="2027 HKDSE exam countdown" />
+  <link rel="stylesheet" href="styles.css?v=20260919h" />
 </head>
 <body>
-  <div class="bg-glow" aria-hidden="true"></div>
   <header class="site-header">
     <p class="eyebrow">Hong Kong Diploma of Secondary Education · 香港中學文憑考試</p>
     <h1>2027 Exam Countdown</h1>
@@ -31,18 +30,14 @@
       </div>
     </section>
 
-    <section id="hero" class="hero tone-hero" aria-live="polite">
-      <!-- filled by JS -->
-    </section>
+    <section id="hero" class="hero" aria-live="polite"></section>
 
     <section class="subjects-section">
       <div class="section-head">
         <h2>All confirmed subjects</h2>
-        <p>撳科目卡可設為 Main focus · Click a subject to set Main focus · 考完顯示 Completed</p>
+        <p>撳科目卡設為 Main focus · 全部科目每秒倒數</p>
       </div>
-      <div id="subject-list" class="subject-grid">
-        <!-- filled by JS -->
-      </div>
+      <div id="subject-list" class="subject-grid"></div>
     </section>
 
     <section class="encourage-footer">
@@ -50,24 +45,21 @@
       <ul>
         <li>睡夠、食好、留時間休息——狀態同溫習一樣重要。</li>
         <li>Rest well and eat well — your energy matters as much as your notes.</li>
-        <li>錯題係地圖，唔係判決。睇錯一次，就接近對多一次。</li>
-        <li>Mistakes are a map, not a verdict. Each one brings you closer.</li>
-        <li>考試量度準備，唔量度你值唔值得被愛。</li>
+        <li>錯題係地圖，唔係判決。</li>
         <li>Exams measure preparation — not your worth.</li>
       </ul>
-      <div class="verse-list">
-        <h3>More verses · 更多經文（和合本繁體）</h3>
+      <details class="verse-list">
+        <summary>More verses · 更多經文（和合本繁體）</summary>
         <ul id="verse-list"></ul>
-      </div>
+      </details>
     </section>
   </main>
 
   <footer class="site-footer">
-    <p>Source: 2027 HKDSE Examination Timetable（考試時間表）.</p>
-    <p>Written papers assumed <strong>08:30 HKT</strong>. Subjects without a confirmed single date are omitted (Note 2).</p>
-    <p class="tz-note">Build <strong>20260919g</strong>. Countdowns use Asia/Hong_Kong. Default Main focus: 中國語文. Scripture: 和合本（繁體）+ English.</p>
+    <p>Source: 2027 HKDSE Examination Timetable. Papers assumed <strong>08:30 HKT</strong>.</p>
+    <p>Build <strong>20260919h</strong> (lightweight). Default Main focus: 中國語文.</p>
   </footer>
 
-  <script src="app.js?v=20260919g"></script>
+  <script src="app.js?v=20260919h" defer></script>
 </body>
 </html>
