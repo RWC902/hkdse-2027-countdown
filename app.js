@@ -1,10 +1,10 @@
 /**
- * 2027 HKDSE countdown — lightweight build 20260919h
+ * 2027 HKDSE countdown — lightweight build 20260919i
  * Hero: 4 blocks / 1s. Cards: ONE text node each / 1s. No full re-render.
  */
 (function () {
   "use strict";
-  var BUILD = "20260919h";
+  var BUILD = "20260919i";
   var STORAGE_KEY = "hkdse2027-focus-id-v3";
   var VERSE_KEY = "hkdse2027-verse-i";
   var NOT_BEFORE = Date.UTC(2027, 2, 31, 16, 0, 0);
