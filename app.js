@@ -1,16 +1,19 @@
 /**
- * 2027 HKDSE countdown — 08:30 HKT.
- * Default focus: 中國語文 (until it completes).
- * Perf: hero ticks every 1s; subject cards refresh every 30s (days/hours only feel smooth, less DOM work).
+ * 2027 HKDSE countdown — 08:30 HKT (Asia/Hong_Kong).
+ * Build: 20260919g
+ *
+ * - Default Main focus: 中國語文
+ * - Completed ONLY when exam time has passed (hard safety: never before 2027-04-01)
+ * - All countdowns tick every 1s by updating text only (no full re-render)
  */
 (function () {
   "use strict";
 
-  const EXAM_HOUR = 8;
-  const EXAM_MINUTE = 30;
-  const STORAGE_KEY = "hkdse2027-focus-id-v2";
+  const BUILD = "20260919g";
+  const STORAGE_KEY = "hkdse2027-focus-id-v3";
   const VERSE_KEY = "hkdse2027-verse-i";
-  const CARD_TICK_MS = 30000;
+  // Nothing can be Completed before HKT midnight 1 Apr 2027 (= 2027-03-31 16:00 UTC)
+  const NOT_BEFORE = Date.UTC(2027, 2, 31, 16, 0, 0);
 
   const TONES = [
     "tone-red", "tone-orange", "tone-amber", "tone-lime", "tone-green",
@@ -34,7 +37,7 @@
   ];
 
   const SUBJECTS = [
-    { id: "chi", zh: "中國語文（一）及（二）", en: "Chinese Language Papers 1 & 2", date: "2027-04-08", defaultHero: true, tipZh: "讀多一篇、寫多一段。語感係練出嚟嘅——你做得到。", tipEn: "One more passage, one more paragraph. You’ve got this." },
+    { id: "chi", zh: "中國語文（一）及（二）", en: "Chinese Language Papers 1 & 2", date: "2027-04-08", tipZh: "讀多一篇、寫多一段。語感係練出嚟嘅——你做得到。", tipEn: "One more passage, one more paragraph. You’ve got this." },
     { id: "va", zh: "視覺藝術", en: "Visual Arts", date: "2027-04-06", tipZh: "把構思畫清楚，大膽表達你嘅觀察。", tipEn: "Make your ideas visible. Trust your eye." },
     { id: "chilit", zh: "中國文學", en: "Chinese Literature", date: "2027-04-07", tipZh: "文本要細讀，感受同分析一齊走。", tipEn: "Read closely — feeling and analysis travel together." },
     { id: "eng12", zh: "英國語文（一）及（二）", en: "English Language Papers 1 & 2", date: "2027-04-09", tipZh: "每日讀寫一點，流暢度會慢慢返嚟。", tipEn: "A little reading and writing daily rebuilds fluency." },
@@ -57,48 +60,39 @@
     { id: "ers", zh: "倫理與宗教", en: "Ethics & Religious Studies", date: "2027-04-30", tipZh: "立場要清晰，尊重唔同觀點。", tipEn: "Be clear and respectful." },
   ];
 
-  const byDate = SUBJECTS.slice().sort((a, b) => a.date.localeCompare(b.date));
-  const toneById = Object.fromEntries(byDate.map((s, i) => [s.id, TONES[i % TONES.length]]));
-  const subjectById = Object.fromEntries(SUBJECTS.map((s) => [s.id, s]));
-  const DEFAULT_ID = "chi";
-
-  /** 08:30 HKT = 00:30 UTC same calendar day */
   function targetMs(isoDate) {
-    const parts = isoDate.split("-");
-    const y = +parts[0];
-    const m = +parts[1];
-    const d = +parts[2];
-    if (!y || !m || !d) return NaN;
-    return Date.UTC(y, m - 1, d, EXAM_HOUR - 8, EXAM_MINUTE, 0);
+    var p = isoDate.split("-");
+    return Date.UTC(+p[0], +p[1] - 1, +p[2], 0, 30, 0); // 08:30 HKT
   }
 
-  const targetById = Object.fromEntries(SUBJECTS.map((s) => [s.id, targetMs(s.date)]));
+  var byDate = SUBJECTS.slice().sort(function (a, b) { return a.date.localeCompare(b.date); });
+  var toneById = {}, subjectById = {}, targetById = {};
+  for (var i = 0; i < byDate.length; i++) toneById[byDate[i].id] = TONES[i % TONES.length];
+  for (var j = 0; j < SUBJECTS.length; j++) {
+    subjectById[SUBJECTS[j].id] = SUBJECTS[j];
+    targetById[SUBJECTS[j].id] = targetMs(SUBJECTS[j].date);
+  }
 
   function formatDisplayDate(isoDate) {
-    const t = targetMs(isoDate);
-    if (!Number.isFinite(t)) return isoDate;
     return new Intl.DateTimeFormat("en-GB", {
       timeZone: "Asia/Hong_Kong",
       weekday: "short",
       year: "numeric",
       month: "short",
       day: "numeric",
-    }).format(new Date(t));
+    }).format(new Date(targetMs(isoDate)));
   }
 
-  function splitRemaining(ms) {
-    if (!Number.isFinite(ms) || ms > 0) {
-      if (!Number.isFinite(ms)) {
-        return { done: false, days: 0, hours: 0, minutes: 0, seconds: 0, valid: false };
-      }
-    }
-    if (ms <= 0) {
-      return { done: true, days: 0, hours: 0, minutes: 0, seconds: 0, valid: true };
-    }
-    const totalSec = Math.floor(ms / 1000);
+  function pad2(n) { return n < 10 ? "0" + n : String(n); }
+
+  function remainingOf(id, now) {
+    var ms = targetById[id] - now;
+    var completed = now >= NOT_BEFORE && ms <= 0;
+    if (completed) return { completed: true, days: 0, hours: 0, minutes: 0, seconds: 0 };
+    if (ms < 0) ms = 0;
+    var totalSec = Math.floor(ms / 1000);
     return {
-      done: false,
-      valid: true,
+      completed: false,
       days: Math.floor(totalSec / 86400),
       hours: Math.floor((totalSec % 86400) / 3600),
       minutes: Math.floor((totalSec % 3600) / 60),
@@ -106,327 +100,247 @@
     };
   }
 
-  function pad(n) {
-    return n < 10 ? "0" + n : String(n);
-  }
-
-  function isCompleted(id, now) {
-    const t = targetById[id];
-    return Number.isFinite(t) && now >= t;
-  }
-
   function nextUpcoming(now) {
-    for (let i = 0; i < byDate.length; i++) {
-      if (!isCompleted(byDate[i].id, now)) return byDate[i];
+    for (var i = 0; i < byDate.length; i++) {
+      if (!remainingOf(byDate[i].id, now).completed) return byDate[i];
     }
     return null;
   }
 
-  /**
-   * Default = 中國語文 while it is still upcoming.
-   * Only auto-jump away from Chinese after Chinese is completed.
-   * Stored focus allowed only if that subject is still upcoming.
-   */
   function resolveFocusId(now) {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    const chiDone = isCompleted(DEFAULT_ID, now);
-
-    if (!chiDone) {
-      if (stored && subjectById[stored] && !isCompleted(stored, now)) {
-        return stored;
-      }
-      return DEFAULT_ID;
+    var stored = null;
+    try { stored = localStorage.getItem(STORAGE_KEY); } catch (e) {}
+    if (!remainingOf("chi", now).completed) {
+      if (stored && subjectById[stored] && !remainingOf(stored, now).completed) return stored;
+      return "chi";
     }
-
-    // Chinese completed → next upcoming (or keep stored if still upcoming)
-    if (stored && subjectById[stored] && !isCompleted(stored, now)) {
-      return stored;
-    }
-    const next = nextUpcoming(now);
-    return next ? next.id : DEFAULT_ID;
+    if (stored && subjectById[stored] && !remainingOf(stored, now).completed) return stored;
+    var n = nextUpcoming(now);
+    return n ? n.id : "chi";
   }
 
-  const heroEl = document.getElementById("hero");
-  const listEl = document.getElementById("subject-list");
-  const verseTextEl = document.getElementById("verse-text");
-  const verseRefEl = document.getElementById("verse-ref");
-  const verseNextBtn = document.getElementById("verse-next");
-  const verseListEl = document.getElementById("verse-list");
+  var heroEl = document.getElementById("hero");
+  var listEl = document.getElementById("subject-list");
+  var verseTextEl = document.getElementById("verse-text");
+  var verseRefEl = document.getElementById("verse-ref");
+  var verseNextBtn = document.getElementById("verse-next");
+  var verseListEl = document.getElementById("verse-list");
 
-  let focusId = resolveFocusId(Date.now());
-  localStorage.setItem(STORAGE_KEY, focusId);
+  var focusId = resolveFocusId(Date.now());
+  try {
+    localStorage.setItem(STORAGE_KEY, focusId);
+    localStorage.removeItem("hkdse2027-focus-id");
+    localStorage.removeItem("hkdse2027-focus-id-v2");
+  } catch (e) {}
 
-  let verseIndex = Number(localStorage.getItem(VERSE_KEY));
-  if (!Number.isFinite(verseIndex) || verseIndex < 0 || verseIndex >= VERSES.length) verseIndex = 0;
+  var verseIndex = Number(localStorage.getItem(VERSE_KEY));
+  if (!isFinite(verseIndex) || verseIndex < 0 || verseIndex >= VERSES.length) verseIndex = 0;
 
-  let heroVals = null;
-  let heroDoneEl = null;
-  let heroCountWrap = null;
-  const cardRefs = Object.create(null);
-  let lastCardTick = 0;
+  var heroVals = null, heroCountWrap = null, heroStatusEl = null, cardRefs = {};
 
-  function getFocus() {
-    return subjectById[focusId];
+  function setText(el, v) { if (el && el.textContent !== v) el.textContent = v; }
+
+  function buildUnits(compact) {
+    var labels = compact ? ["Days", "Hrs", "Min", "Sec"] : ["Days · 日", "Hours · 時", "Minutes · 分", "Seconds · 秒"];
+    var wrap = document.createElement("div");
+    wrap.className = compact ? "card-count" : "countdown";
+    var refs = {}, keys = ["days", "hours", "minutes", "seconds"];
+    for (var i = 0; i < 4; i++) {
+      var box = document.createElement("div");
+      box.className = compact ? "mini" : "unit";
+      var val = document.createElement(compact ? "strong" : "span");
+      if (!compact) val.className = "value";
+      val.textContent = "0";
+      var lab = document.createElement("span");
+      if (!compact) lab.className = "label";
+      lab.textContent = labels[i];
+      box.appendChild(val); box.appendChild(lab); wrap.appendChild(box);
+      refs[keys[i]] = val;
+    }
+    return { wrap: wrap, refs: refs };
+  }
+
+  function paint(refs, r) {
+    setText(refs.days, String(r.days));
+    setText(refs.hours, pad2(r.hours));
+    setText(refs.minutes, pad2(r.minutes));
+    setText(refs.seconds, pad2(r.seconds));
   }
 
   function renderVerse() {
-    const v = VERSES[verseIndex];
+    var v = VERSES[verseIndex];
     verseTextEl.textContent = v.zh;
-    const en = document.createElement("span");
+    verseTextEl.appendChild(document.createElement("br"));
+    var en = document.createElement("span");
     en.className = "verse-en";
     en.textContent = v.en;
-    verseTextEl.appendChild(document.createElement("br"));
     verseTextEl.appendChild(en);
     verseRefEl.textContent = v.ref;
-    localStorage.setItem(VERSE_KEY, String(verseIndex));
+    try { localStorage.setItem(VERSE_KEY, String(verseIndex)); } catch (e) {}
   }
 
   function renderVerseList() {
-    const html = VERSES.map(
-      (v) => `<li><strong>${v.ref}</strong><br />${v.zh}<br /><em>${v.en}</em></li>`
-    ).join("");
+    var html = "";
+    for (var i = 0; i < VERSES.length; i++) {
+      var v = VERSES[i];
+      html += "<li><strong>" + v.ref + "</strong><br />" + v.zh + "<br /><em>" + v.en + "</em></li>";
+    }
     verseListEl.innerHTML = html;
   }
 
-  function buildUnits(compact) {
-    const labels = compact
-      ? ["Days", "Hrs", "Min", "Sec"]
-      : ["Days · 日", "Hours · 時", "Minutes · 分", "Seconds · 秒"];
-    const wrap = document.createElement("div");
-    wrap.className = compact ? "card-count" : "countdown";
-    const refs = {};
-    const keys = ["days", "hours", "minutes", "seconds"];
-    for (let i = 0; i < 4; i++) {
-      const box = document.createElement("div");
-      box.className = compact ? "mini" : "unit";
-      const val = document.createElement(compact ? "strong" : "span");
-      if (!compact) val.className = "value";
-      val.textContent = "—";
-      const lab = document.createElement("span");
-      if (!compact) lab.className = "label";
-      lab.textContent = labels[i];
-      box.appendChild(val);
-      box.appendChild(lab);
-      wrap.appendChild(box);
-      refs[keys[i]] = val;
-    }
-    return { wrap, refs };
-  }
-
-  function setText(el, v) {
-    if (el && el.textContent !== v) el.textContent = v;
-  }
-
-  function paintParts(refs, parts, padHours) {
-    setText(refs.days, String(parts.days));
-    setText(refs.hours, padHours ? pad(parts.hours) : String(parts.hours));
-    setText(refs.minutes, pad(parts.minutes));
-    setText(refs.seconds, pad(parts.seconds));
-  }
-
   function renderHero() {
-    const focus = getFocus();
-    const frag = document.createDocumentFragment();
-
-    const label = document.createElement("span");
+    var focus = subjectById[focusId];
+    heroEl.textContent = "";
+    var label = document.createElement("span");
     label.className = "hero-label";
     label.textContent = "Main focus · 主科焦點";
-
-    const h2 = document.createElement("h2");
+    var h2 = document.createElement("h2");
     h2.textContent = focus.zh;
-
-    const en = document.createElement("p");
+    var en = document.createElement("p");
     en.className = "en-name";
     en.textContent = focus.en;
-
-    const date = document.createElement("p");
+    var date = document.createElement("p");
     date.className = "hero-date";
     date.textContent = formatDisplayDate(focus.date) + " · 08:30 HKT";
-
-    const tip = document.createElement("p");
+    var tip = document.createElement("p");
     tip.className = "hero-encourage";
-    tip.textContent = focus.tipZh + " ";
-    const tipEn = document.createElement("span");
-    tipEn.textContent = focus.tipEn;
-    tip.appendChild(tipEn);
-
-    const units = buildUnits(false);
+    tip.textContent = focus.tipZh + " " + focus.tipEn;
+    var units = buildUnits(false);
     heroCountWrap = units.wrap;
     heroVals = units.refs;
-
-    heroDoneEl = document.createElement("div");
-    heroDoneEl.className = "completed-badge";
-    heroDoneEl.hidden = true;
-    heroDoneEl.textContent = "✓ Completed · 已完成";
-
-    const hint = document.createElement("p");
+    heroStatusEl = document.createElement("div");
+    heroStatusEl.className = "completed-badge";
+    heroStatusEl.style.display = "none";
+    heroStatusEl.textContent = "✓ Completed · 已完成";
+    var hint = document.createElement("p");
     hint.className = "hero-hint";
-    hint.textContent = "撳下面科目可更換主科焦點 · Click a subject to change focus";
-
-    frag.append(label, h2, en, date, tip, units.wrap, heroDoneEl, hint);
-    heroEl.replaceChildren(frag);
+    hint.textContent = "撳下面科目可更換主科焦點 · Click a subject to change focus · Build " + BUILD;
+    heroEl.appendChild(label); heroEl.appendChild(h2); heroEl.appendChild(en);
+    heroEl.appendChild(date); heroEl.appendChild(tip); heroEl.appendChild(heroCountWrap);
+    heroEl.appendChild(heroStatusEl); heroEl.appendChild(hint);
   }
 
   function renderList() {
-    const frag = document.createDocumentFragment();
-    for (const key of Object.keys(cardRefs)) delete cardRefs[key];
-
-    for (let i = 0; i < byDate.length; i++) {
-      const s = byDate[i];
-      const selected = s.id === focusId;
-      const card = document.createElement("article");
+    listEl.textContent = "";
+    cardRefs = {};
+    for (var i = 0; i < byDate.length; i++) {
+      var s = byDate[i];
+      var selected = s.id === focusId;
+      var card = document.createElement("article");
       card.className = "card " + toneById[s.id] + (selected ? " is-focus" : "");
       card.dataset.id = s.id;
       card.tabIndex = 0;
       card.setAttribute("role", "button");
-
-      const pick = document.createElement("p");
+      var pick = document.createElement("p");
       pick.className = "card-pick";
-      pick.textContent = selected
-        ? "✓ Current focus · 而家主科"
-        : "Set as Main focus · 設為主科";
-
-      const title = document.createElement("h3");
+      pick.textContent = selected ? "✓ Current focus · 而家主科" : "Set as Main focus · 設為主科";
+      var title = document.createElement("h3");
       title.className = "card-title";
       title.textContent = s.zh;
-
-      const en = document.createElement("p");
+      var en = document.createElement("p");
       en.className = "card-en";
       en.textContent = s.en;
-
-      const date = document.createElement("p");
+      var date = document.createElement("p");
       date.className = "card-date";
       date.textContent = formatDisplayDate(s.date) + " · 08:30 HKT";
-
-      const tip = document.createElement("p");
+      var tip = document.createElement("p");
       tip.className = "card-encourage";
       tip.textContent = s.tipZh;
-
-      const units = buildUnits(true);
-      const over = document.createElement("p");
+      var units = buildUnits(true);
+      var over = document.createElement("p");
       over.className = "card-over";
-      over.hidden = true;
+      over.style.display = "none";
       over.textContent = "✓ Completed · 已完成";
-
-      card.append(pick, title, en, date, tip, units.wrap, over);
-      frag.appendChild(card);
-
-      cardRefs[s.id] = {
-        days: units.refs.days,
-        hours: units.refs.hours,
-        minutes: units.refs.minutes,
-        seconds: units.refs.seconds,
-        count: units.wrap,
-        over: over,
-        card: card,
-        pick: pick,
-      };
+      card.appendChild(pick); card.appendChild(title); card.appendChild(en);
+      card.appendChild(date); card.appendChild(tip); card.appendChild(units.wrap); card.appendChild(over);
+      listEl.appendChild(card);
+      cardRefs[s.id] = { days: units.refs.days, hours: units.refs.hours, minutes: units.refs.minutes, seconds: units.refs.seconds, count: units.wrap, over: over, card: card, pick: pick };
     }
-    listEl.replaceChildren(frag);
   }
 
   function markListFocus() {
-    for (let i = 0; i < byDate.length; i++) {
-      const s = byDate[i];
-      const ref = cardRefs[s.id];
+    for (var i = 0; i < byDate.length; i++) {
+      var s = byDate[i];
+      var ref = cardRefs[s.id];
       if (!ref) continue;
-      const selected = s.id === focusId;
-      ref.card.classList.toggle("is-focus", selected);
-      ref.pick.textContent = selected
-        ? "✓ Current focus · 而家主科"
-        : "Set as Main focus · 設為主科";
+      var selected = s.id === focusId;
+      if (selected) ref.card.classList.add("is-focus"); else ref.card.classList.remove("is-focus");
+      setText(ref.pick, selected ? "✓ Current focus · 而家主科" : "Set as Main focus · 設為主科");
     }
   }
 
-  function updateHero(now) {
-    const focus = getFocus();
-    const t = targetById[focus.id];
-    const parts = splitRemaining(t - now);
-
-    // Only show Completed when time has truly passed
-    const done = parts.valid && parts.done;
-    heroEl.classList.toggle("done", done);
-    if (heroCountWrap) heroCountWrap.hidden = done;
-    if (heroDoneEl) heroDoneEl.hidden = !done;
-    if (!done && heroVals) paintParts(heroVals, parts, true);
-  }
-
-  function updateCards(now) {
-    for (let i = 0; i < byDate.length; i++) {
-      const s = byDate[i];
-      const ref = cardRefs[s.id];
-      if (!ref) continue;
-      const parts = splitRemaining(targetById[s.id] - now);
-      const done = parts.valid && parts.done;
-      ref.count.hidden = done;
-      ref.over.hidden = !done;
-      ref.card.classList.toggle("done", done);
-      if (!done) paintParts(ref, parts, true);
+  function updateAll() {
+    var now = Date.now();
+    var focusRem = remainingOf(focusId, now);
+    if (focusRem.completed) {
+      var nxt = nextUpcoming(now);
+      if (nxt && nxt.id !== focusId) {
+        focusId = nxt.id;
+        try { localStorage.setItem(STORAGE_KEY, focusId); } catch (e) {}
+        renderHero();
+        markListFocus();
+        focusRem = remainingOf(focusId, now);
+      }
     }
-  }
 
-  function maybeAutoAdvance(now) {
-    // Only advance when CURRENT focus is completed
-    if (!isCompleted(focusId, now)) return;
-    const next = nextUpcoming(now);
-    if (!next || next.id === focusId) return;
-    focusId = next.id;
-    localStorage.setItem(STORAGE_KEY, focusId);
-    renderHero();
-    markListFocus();
-  }
+    if (focusRem.completed) {
+      heroEl.classList.add("done");
+      if (heroCountWrap) heroCountWrap.style.display = "none";
+      if (heroStatusEl) heroStatusEl.style.display = "block";
+    } else {
+      heroEl.classList.remove("done");
+      if (heroCountWrap) heroCountWrap.style.display = "";
+      if (heroStatusEl) heroStatusEl.style.display = "none";
+      if (heroVals) paint(heroVals, focusRem);
+    }
 
-  function tickHero() {
-    const now = Date.now();
-    maybeAutoAdvance(now);
-    updateHero(now);
-  }
-
-  function tickCards() {
-    updateCards(Date.now());
-    lastCardTick = Date.now();
+    for (var i = 0; i < byDate.length; i++) {
+      var s = byDate[i];
+      var ref = cardRefs[s.id];
+      if (!ref) continue;
+      var r = remainingOf(s.id, now);
+      if (r.completed) {
+        ref.count.style.display = "none";
+        ref.over.style.display = "block";
+        ref.card.classList.add("done");
+      } else {
+        ref.count.style.display = "";
+        ref.over.style.display = "none";
+        ref.card.classList.remove("done");
+        paint(ref, r);
+      }
+    }
   }
 
   function setFocus(id) {
-    if (!subjectById[id]) return;
+    if (!subjectById[id] || id === focusId) return;
     focusId = id;
-    localStorage.setItem(STORAGE_KEY, id);
+    try { localStorage.setItem(STORAGE_KEY, id); } catch (e) {}
     renderHero();
     markListFocus();
-    updateHero(Date.now());
+    updateAll();
   }
 
   listEl.addEventListener("click", function (e) {
-    const card = e.target.closest(".card");
-    if (!card) return;
-    setFocus(card.dataset.id);
+    var card = e.target.closest(".card");
+    if (card) setFocus(card.dataset.id);
   });
-
   listEl.addEventListener("keydown", function (e) {
     if (e.key !== "Enter" && e.key !== " ") return;
-    const card = e.target.closest(".card");
+    var card = e.target.closest(".card");
     if (!card) return;
     e.preventDefault();
     setFocus(card.dataset.id);
   });
-
   verseNextBtn.addEventListener("click", function () {
     verseIndex = (verseIndex + 1) % VERSES.length;
     renderVerse();
   });
 
-  // Clear old broken storage key from previous versions
-  try {
-    localStorage.removeItem("hkdse2027-focus-id");
-  } catch (e) {}
-
   renderVerse();
   renderVerseList();
   renderHero();
   renderList();
-  updateHero(Date.now());
-  updateCards(Date.now());
-
-  setInterval(tickHero, 1000);
-  setInterval(tickCards, CARD_TICK_MS);
+  updateAll();
+  setInterval(updateAll, 1000);
 })();

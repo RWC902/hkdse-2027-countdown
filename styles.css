@@ -640,9 +640,7 @@ main,
   letter-spacing: 0.02em;
 }
 
-.hero.done .countdown {
-  display: none;
-}
+/* countdown visibility controlled in JS only */
 
 .verse-en {
   display: inline-block;
@@ -654,3 +652,7 @@ main,
 .card.done {
   opacity: 0.78;
 }
+
+/* Build stamp helpers */
+.completed-badge { display: none; }
+.card-over { display: none; }
